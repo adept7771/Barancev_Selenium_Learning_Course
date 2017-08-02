@@ -96,16 +96,12 @@ def test_countries_zones(driver):
             ''' получаем отмеченный индекс зоны для текущего id и присваиваем ему имя, исходя из списка всех зон '''
             current_zone_element_name = list_of_dropdown_zones[int(current_zone_element_index) - 1]
             actual_zones_names.append(current_zone_element_name)
-
-            #assert_equal(current_zone_element_name, sorted_list_of_dropdown_zones[a-2])
             a += 1
 
         ''' Сравниваем список отсортированных имен зон от получившегося списка и получившийся список '''
         assert_equal(actual_zones_names, sorted(actual_zones_names))
-
         ''' возвращаемся в общий список стран'''
         driver.find_element_by_css_selector('#content > form > p > span > button:nth-child(2)').click()
-
     print("Элементы зон отсортированы верно")
 
     driver.quit()
