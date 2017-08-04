@@ -3,6 +3,7 @@ from os import getcwd
 from time import sleep
 import pytest
 from nose.tools import assert_equal
+from nose.tools import assert_false
 from nose.tools import assert_true
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
@@ -33,7 +34,8 @@ def test_lesson_12(driver):
     ''' ============================================== '''
     driver.find_element_by_css_selector('ul > li:nth-child(2) > a > span.name').click()
     ''' ^ переходим в каталог '''
-    num_of_products = len(driver.find_elements_by_css_selector('table > tbody > tr > td:nth-child(3) > a'))
+    list_of_products = (driver.find_elements_by_css_selector('table > tbody > tr > td:nth-child(3) > a'))
+    num_of_products = len(list_of_products)
     ''' ^ считываем число продуктов (оно нам пригодится) '''
     driver.find_element_by_css_selector('#content > div:nth-child(2) > a:nth-child(2)').click()
     sleep(1)
@@ -137,6 +139,9 @@ def test_lesson_12(driver):
     sleep(1)
 
     ''' проверка, что элемент создан '''
+    current_list_of_products = driver.find_elements_by_css_selector('table > tbody > tr > td:nth-child(3) > a')
+    assert_true(num_of_products < len(current_list_of_products))
+    assert_false(list_of_products == current_list_of_products)
 
     driver.quit()
 
