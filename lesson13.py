@@ -57,12 +57,25 @@ def test_lesson_12(driver):
             if current_item_num < len(items_in_cart):
                 ''' кликаем на товар, если товар не последний оставшийся в корзине'''
                 driver.find_element_by_css_selector('#box-checkout-cart > ul > li:nth-child(1) > a').click()
+
+            current_item_title = driver.find_element_by_css_selector(
+                '#box-checkout-cart > div > ul > li:nth-child(1) > form > div > p:nth-child(1) > a > strong') \
+                .get_attribute('textContent')
+
             ''' удаляем '''
             driver.find_element_by_name('remove_cart_item').click()
-            if current_item_num < len(items_in_cart):
-                ''' ждем подгрузки страницы '''
-                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#box-checkout-cart > div > ul > li > form > a > img')))
-            ''' ждем обновления таблицы, если элемент корзины не последний '''
+
+            ''' небольшой велосипед '''
+            new_item_title = driver.find_element_by_css_selector(
+                '#box-checkout-cart > div > ul > li:nth-child(1) > form > div > p:nth-child(1) > a > strong') \
+                .get_attribute('textContent')
+            ''' если заголовок не поменялся, ждем '''
+            if current_item_title == new_item_title:
+                sleep(1)
+            ''' к сожалению, не один другой способ определения доступности элементов не смог
+             победить прелоудер, который вызывает ошибки '''
+
+            ''' ждем обновления таблицы товаров, если элемент корзины не последний '''
             if current_item_num < len(items_in_cart):
                 current_item_name = \
                     driver.find_element_by_css_selector('#box-checkout-cart > div > ul > li:nth-child(1) > form >\
