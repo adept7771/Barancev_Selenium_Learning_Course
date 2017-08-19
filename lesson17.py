@@ -2,19 +2,22 @@ from time import sleep
 import pytest
 from nose.tools import assert_true
 from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.action_chains import ActionChains
 
 
 @pytest.fixture
 def driver(request):
     web_driver = webdriver.Chrome()
+    web_driver.maximize_window()
     request.addfinalizer(web_driver.quit)
     return web_driver
 
-def test_lesson_13(driver):
 
+def test_lesson_13(driver):
     wait = WebDriverWait(driver, 10)
     ''' =================== LOGIN =================== '''
     driver.get("http://barancev.i-adept.ru/adept/login.php")
@@ -27,80 +30,53 @@ def test_lesson_13(driver):
     ''' ============================================== '''
     driver.get('http://barancev.i-adept.ru/adept/?app=catalog&doc=catalog')
     wait.until(EC.presence_of_element_located((By.NAME, "delete")))
+    list_of_item_links = []
+    catalog_entities_list = driver.find_elements_by_css_selector(
+        '#content > form > table > tbody > tr > td:nth-child(3) > a')
+    repeat = True
 
-    ''' проведем подсчет всех пунктов в каталоге '''
-    catalog_list = driver.find_elements_by_css_selector('#content > form > table\
-     > tbody > tr > td:nth-child(3) > a')
-    catalog_len = len(catalog_list)
-    ''' необходимо пройтись по всем элементам каталога, длина каталога будет меняться
-     в зависимости от суммарного количества элементов'''
-    i = 3 # порядковый номер элемента для обращения, из-за верстки начинаем с третьего
-    b = catalog_len+3 # граница проверок
-    catalog_counter = 0 # счетчик каталогов
+    while repeat:
+        'формируем первоначальный список ссылок'
+        for element in catalog_entities_list:
+            if element.get_attribute('href') not in list_of_item_links:
+                list_of_item_links.append(str(element.get_attribute('href')))
+        repeat = False
 
-    while i <= b:
-        element = driver.find_element_by_css_selector\
-            ('#content > form > table > tbody > tr:nth-child('+str(i)+') > td:nth-child(3) > a')
-        '''если элемент это ссылка каталога, просто переходим по ней и расширяем длину списка товаров'''
-        if element.get_attribute('href').find('product_id') == -1:
-            ''' если элемент - каталог, переходим в него '''
-            element.click()
-            catalog_counter += 1
-            ''' считаем получившееся число элементов каталога'''
+    repeat = True
+    while repeat:
+        'проходим по списку и ищем категории. Прощелкиваем их и добавляем новые ссылки - если таковые есть'
+        for element in list_of_item_links:
+            'если ссылка в списке каталог - переходим в него'
+            if element.find('product_id') == -1:
+                driver.get(element)
+                'получаем новый список элементов каталога'
+                catalog_entities_list = driver.find_elements_by_css_selector(
+                    '#content > form > table > tbody > tr > td:nth-child(3) > a')
+                'сравниваем ссылки полученных элементов, с уже имеющимися и добавляем отсутствующие ссылки'
+                for item in catalog_entities_list:
+                    if item.get_attribute('href') not in list_of_item_links:
+                        list_of_item_links.append(str(item.get_attribute('href')))
 
-            current_cat_len = len(driver.find_elements_by_css_selector('#content > form > table\
-             > tbody > tr > td:nth-child(3) > a'))
+        'если больше ссылок нет на каталоги, поиск прекращаем'
+        repeat = False
 
-            '''если при открытии каталога, элементов стало больше или столько же, 
-            расширяем список для проверки'''
-            if current_cat_len >= catalog_len:
-                current_cat_len += catalog_counter
-                b += (current_cat_len - catalog_len)
-                '''смещаем границу проверок на разницу списков элементов'''
-                catalog_len = current_cat_len
-                '''присваием новую длину списку элементов'''
-                i += 1
-            else:
+    'вычищаем список получившихся ссылок от ссылок на каталоги'
+    for a in list_of_item_links:
+        if a.find('product_id') == -1:
+            list_of_item_links.remove(a)
+    list_of_item_links.pop(0)  # по неведомой причине файнд не обрабатывает всегда правильно 1й эл-т
 
-
-
-        else:
-            'если элемент не каталог - проверяем его и возвращаемся к общему списку'
-            element.click()
-            driver.find_element_by_css_selector('#content > form > p > span > button:nth-child(2)').click()
-            i += 1
-
-
-
-
-
-
-    # for element in catalog_list:
-    #
-    #     if element.get_attribute('href').find('category_id') != -1:
-    #         element.click()
-    #         catalog_len = len(driver.find_elements_by_css_selector('#content > form > table > tbody\
-    #          > tr > td:nth-child(3) > a'))
-
-
-    i = 0
-    # while i <= len(catalog_list):
-    #     current_url = driver.current_url
-    #     wait.until(EC.presence_of_element_located((By.NAME, "delete")))
-    #     sleep(1)
-    #     catalog_list[i].click()
-    #     if driver.find_element_by_css_selector('#content > h1').get_attribute("innerText") == " Catalog":
-    #         tmp_list = driver.find_elements_by_css_selector('#content > form > table > tbody > tr > td:nth-child(3) > a')
-    #         i += 1
-    #         sleep(1)
-    #         if len(tmp_list) != len(catalog_list):
-    #             catalog_list = tmp_list
-    #             i = 0
-    #         sleep(1)
-    #     else:
-    #         print('я в товаре')
-    #         sleep(1)
-    #         driver.get(current_url)
-
-
-    driver.quit()
+    'список ссылок на товары готов. Проверяем каждый товар на ошибки'
+    for element in list_of_item_links:
+        driver.get(element)
+        wait.until(EC.presence_of_element_located((By.NAME, "delete")))
+        logs = driver.get_log("browser")
+        url = driver.current_url
+        'Если логи не пусты - выводим их'
+        if logs is not None:
+            for log in logs:
+                print('')
+                print('Current page: ' + url)
+                print('Level: ' + log['level'])
+                print('Message ' + log['message'])
+    print('!')
